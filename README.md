@@ -1,19 +1,21 @@
 # LoRa AT Modem — TTGO LoRa32 T3 v1.6.1 (433 MHz)
 
-Firmware PlatformIO/Arduino qui transforme une carte **LilyGO TTGO LoRa32 T3
-v1.6.1** (ESP32 + SX1278, 433 MHz) en modem LoRa brut piloté par commandes
-**AT** sur le port série USB.
+> 🇫🇷 [Version française](README.fr.md)
 
-Le jeu de commandes implémenté suit `AT_COMMANDS.md` (interface at-os3) :
-fréquence, profil de modulation (SF/BW/CR/préambule), profil paquet
-(CRC/LDRO/longueur), puissance PA_BOOST, sync word, inversion IQ, envoi/réception
-de trames en hexadécimal, lecture de registre SX1278, etc.
+PlatformIO/Arduino firmware that turns a **LilyGO TTGO LoRa32 T3 v1.6.1**
+board (ESP32 + SX1278, 433 MHz) into a raw LoRa modem driven by **AT**
+commands over the USB serial port.
 
-Le pilote radio est **[RadioLib](https://github.com/jgromes/RadioLib)**.
+The implemented command set follows `AT_COMMANDS.md` (at-os3 interface):
+frequency, modulation profile (SF/BW/CR/preamble), packet profile
+(CRC/LDRO/length), PA_BOOST output power, sync word, IQ inversion,
+hex-encoded frame transmit/receive, SX1278 register read, etc.
 
-## Brochage (T3 v1.6.1)
+The radio driver is **[RadioLib](https://github.com/jgromes/RadioLib)**.
 
-LoRa SX1278 (SPI) :
+## Pinout (T3 v1.6.1)
+
+LoRa SX1278 (SPI):
 
 | Signal | GPIO |
 |--------|-----:|
@@ -25,55 +27,55 @@ LoRa SX1278 (SPI) :
 | DIO0   | 26   |
 | DIO1   | 33   |
 
-OLED SSD1306 128×64 (I²C, adresse 0x3C) :
+OLED SSD1306 128×64 (I²C, address 0x3C):
 
 | Signal | GPIO |
 |--------|-----:|
 | SDA    | 21   |
 | SCL    | 22   |
-| RST    | -1 (non câblé) |
+| RST    | -1 (not wired) |
 
-## Écran OLED — indicateurs
+## OLED display — indicators
 
-L'écran affiche en temps réel (~3 Hz) :
+The screen shows in real time (~3 Hz):
 
 ```
 ┌──────────────────────────┐
-│ 433.500MHz           RX   │  fréquence + mode (RX / STBY)
-│ SF9 BW125 4/5            │  profil de modulation
-│ P10 SW12 IQn C1         │  puissance, sync word, IQ, CRC
-│ TX:1 RX:0 E:0           │  compteurs (TX / RX / erreurs CRC)
-│ RSSI-57 SNR7            │  métriques du dernier paquet reçu
-│ TX 5B 68656C6C6F        │  dernier événement + payload (hex tronqué)
+│ 433.500MHz           RX   │  frequency + mode (RX / STBY)
+│ SF9 BW125 4/5            │  modulation profile
+│ P10 SW12 IQn C1         │  power, sync word, IQ, CRC
+│ TX:1 RX:0 E:0           │  counters (TX / RX / CRC errors)
+│ RSSI-57 SNR7            │  last received packet metrics
+│ TX 5B 68656C6C6F        │  last event + payload (truncated hex)
 └──────────────────────────┘
 ```
 
-L'OLED est **optionnel** : si l'écran n'est pas détecté, le modem AT continue de
-fonctionner normalement. Si l'écran reste noir, certaines révisions de carte
-câblent le reset OLED sur GPIO16 — recompilez alors avec `-D PIN_OLED_RST=16`
-dans `platformio.ini`.
+The OLED is **optional**: if no display is detected, the AT modem keeps
+working normally. If the screen stays black, some board revisions wire the
+OLED reset to GPIO16 — rebuild with `-D PIN_OLED_RST=16` in
+`platformio.ini`.
 
-Ces valeurs sont passées en `build_flags` dans `platformio.ini` ; modifiez-les
-si votre révision de carte diffère.
+These values are passed as `build_flags` in `platformio.ini`; adjust them
+if your board revision differs.
 
-## Compiler / flasher
+## Build / flash
 
 ```bash
-pio run                # compilation
-pio run -t upload      # flash via USB
-pio device monitor -b 115200   # console série
+pio run                # build
+pio run -t upload      # flash over USB
+pio device monitor -b 115200   # serial console
 ```
 
-## Liaison série
+## Serial link
 
 - **115200 baud, 8N1**
-- `\n` exécute une commande ; `\r` est ignoré (donc `\r\n` accepté)
-- Commandes en MAJUSCULES, analyse stricte
-- Réponses terminées par `\r\n`
-- Commande inconnue / mal formée → `+ERR=4`
-- Au démarrage : `+READY`
+- `\n` executes a command; `\r` is ignored (so `\r\n` is accepted)
+- Uppercase commands, strict parsing
+- Responses terminated by `\r\n`
+- Unknown / malformed command → `+ERR=4`
+- On boot: `+READY`
 
-## Exemple — réception
+## Example — receive
 
 ```text
 AT
@@ -86,36 +88,36 @@ AT+CRFOP=5
 AT+MODE=0
 ```
 
-À la réception d'un paquet :
+When a packet is received:
 
 ```text
 +RCV=<addr>,<len>,<hexdata>,<rssi_dbm>,<snr_db>,<freq_err_hz>
 ```
 
-## Exemple — émission
+## Example — transmit
 
 ```text
-AT+SEND=0,4,70696E67     # envoie "ping"
+AT+SEND=0,4,70696E67     # sends "ping"
 +OK
 +SENDED
 ```
 
-## Notes d'implémentation
+## Implementation notes
 
-- `AT+ADDRESS` et `AT+NETWORKID` sont des registres « ombre » de compatibilité :
-  ils n'altèrent pas le contenu des paquets LoRa bruts (l'adresse n'apparaît
-  que comme premier champ de `+RCV`).
-- `AT+IPR` est un no-op de compatibilité : le débit série n'est pas modifié.
-- `AT+REG=<hh>` lit un registre SX1278 via une sous-classe RadioLib
-  (`SX1278AT`) car `getMod()` est protégé dans RadioLib 6.x.
-- RSSI/SNR/FEI proviennent de `getRSSI()`, `getSNR()`, `getFrequencyError()`.
-- ⚠️ La puissance et la fréquence acceptées par le firmware ne garantissent pas
-  la conformité réglementaire d'émission dans votre région/bande.
+- `AT+ADDRESS` and `AT+NETWORKID` are compatibility "shadow" registers:
+  they do not alter the contents of raw LoRa packets (the address only
+  appears as the first field of `+RCV`).
+- `AT+IPR` is a compatibility no-op: the serial baud rate is not changed.
+- `AT+REG=<hh>` reads an SX1278 register through a RadioLib subclass
+  (`SX1278AT`) because `getMod()` is protected in RadioLib 6.x.
+- RSSI/SNR/FEI come from `getRSSI()`, `getSNR()`, `getFrequencyError()`.
+- ⚠️ The power and frequency values accepted by the firmware do not
+  guarantee regulatory compliance for transmission in your region/band.
 
-## Licence
+## License
 
 Copyright (C) 2026 plonky
 
-Ce programme est un logiciel libre distribué sous les termes de la
-**GNU General Public License version 3** (ou toute version ultérieure) ;
-voir le fichier [LICENSE](LICENSE). Il est fourni sans aucune garantie.
+This program is free software, distributed under the terms of the
+**GNU General Public License version 3** (or any later version); see the
+[LICENSE](LICENSE) file. It comes with absolutely no warranty.
