@@ -116,7 +116,7 @@ AT+SEND=0,4,70696E67     # envoie "ping"
 
 ## Licence
 
-Copyright (C) 2026 plonky
+Copyright (C) 2026 netmonk
 
 Ce programme est un logiciel libre distribué sous les termes de la
 **GNU General Public License version 3** (ou toute version ultérieure) ;
