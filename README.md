@@ -111,3 +111,11 @@ AT+SEND=0,4,70696E67     # envoie "ping"
 - RSSI/SNR/FEI proviennent de `getRSSI()`, `getSNR()`, `getFrequencyError()`.
 - ⚠️ La puissance et la fréquence acceptées par le firmware ne garantissent pas
   la conformité réglementaire d'émission dans votre région/bande.
+
+## Licence
+
+Copyright (C) 2026 plonky
+
+Ce programme est un logiciel libre distribué sous les termes de la
+**GNU General Public License version 3** (ou toute version ultérieure) ;
+voir le fichier [LICENSE](LICENSE). Il est fourni sans aucune garantie.
